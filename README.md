@@ -1,4 +1,10 @@
 # S3Pool
+I developed this code during my master studies (approximately January/March 2017)
+- Rev 2.0
+This code works now on Pytorch 1.0.1. But organization should be improved.
+
+
+- Rev 1.0
 S3Pool: Pooling with Stochastic Spatial Sampling in PyTorch.
 
 I tried to follow the original paper ( https://arxiv.org/abs/1611.05138 ) in PyTorch using the original ResNet (20 layers) topology described in the paper and a small version of VGG (6 layers) with 2 S3Pool blocks.
