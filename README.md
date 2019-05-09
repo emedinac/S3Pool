@@ -1,7 +1,7 @@
-## S3Pool
+# S3Pool
 I developed this code during my master studies (approximately January/March 2017)
 
-# Usage
+## Usage
  The next line is used to run this code, the parameters configured are: lr=0.1, learning schedule apply a divison by 10 at 40,80,110,140 for an overall of 150 epochs. Models are changed manually inside the code.
 
  ```run main.py --lr=0.1 --lrsch=40,80,110,140 --epoch=150```
@@ -9,13 +9,13 @@ I developed this code during my master studies (approximately January/March 2017
 
 
 
-- Rev 2.0
+### Rev 2.0
 
  This code works now on Pytorch 1.0.1. But organization should be improved.
 Usage line is included.
 
 
-- Rev 1.0
+### Rev 1.0
 
  S3Pool: Pooling with Stochastic Spatial Sampling in PyTorch.
 
