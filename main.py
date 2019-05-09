@@ -31,7 +31,7 @@ os.environ["CUDA_VISIBLE_DEVICES"]="0" # USED ONLY IF torch.cuda.device_count() 
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
-parser.add_argument('--lrsch', default=[100], nargs='+', type=str, help='learning rate schedule')
+parser.add_argument('--lrsch', default=["50","100",], nargs='+', type=str, help='learning rate schedule')
 parser.add_argument('--epoch', default=50, type=int, help='number of epochs')
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
 args = parser.parse_args()
@@ -99,9 +99,9 @@ else:
     testset = torchvision.datasets.CIFAR100(root='./data', train=False, download=True, transform=transform_test)
     testloader = torch.utils.data.DataLoader(testset, batch_size=256, shuffle=False, num_workers=8)
 
-print(trainset.train_data.shape)
-print(np.mean(trainset.train_data, axis=(0,1,2)))
-print(np.std(trainset.train_data, axis=(0,1,2)))
+print(trainset.data.shape)
+print(np.mean(trainset.data, axis=(0,1,2)))
+print(np.std(trainset.data, axis=(0,1,2)))
 
 # Model
 if args.resume:
@@ -117,7 +117,7 @@ else:
     # net = VGG_GAP('VGG19_S3',[16,8,4,2,1])
     # net = CustomVGG('6ls3',[16,8,4,2,1])
     # net = CustomResnet('6ls3',[16,8,4,2,1])
-    net = RefPaperS3Pool()
+    net = Network((3,32,32))
     # net = VGG('VGG19')
 if use_cuda:
     net.cuda()
@@ -127,7 +127,7 @@ if use_cuda:
 def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
-        init.xavier_uniform(m.weight.data)
+        init.xavier_uniform_(m.weight.data)
 
 net.apply(weights_init) # apply weight init Xavier or He
 
@@ -136,7 +136,7 @@ net.apply(weights_init) # apply weight init Xavier or He
 def train(epoch):
     print('\nEpoch: %d' % epoch)
     net.train()
-    tr_loss, correct, total = 0
+    tr_loss, correct, total = 0, 0, 0
     for batch_idx, (inputs, targets) in enumerate(trainloader):
         if use_cuda:
             inputs, targets = inputs.cuda(), targets.cuda()
@@ -147,10 +147,10 @@ def train(epoch):
         loss.backward()
         optimizer.step()
 
-        tr_loss += loss.data[0]
+        tr_loss += loss.data.item()
         _, predicted = torch.max(outputs.data, 1)
         total += targets.size(0)
-        correct += predicted.eq(targets.data).cpu().sum()
+        correct += predicted.eq(targets.data).sum().cpu()
 
         progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
             % (tr_loss/(batch_idx+1), 100.*correct/total, correct, total))
@@ -159,21 +159,22 @@ def train(epoch):
 def test(epoch):
     global best_acc, all_weights
     net.eval()
-    te_loss, correct, total = 0
-    for batch_idx, (inputs, targets) in enumerate(testloader):
-        if use_cuda:
-            inputs, targets = inputs.cuda(), targets.cuda()
-        inputs, targets = Variable(inputs, volatile=True), Variable(targets)
-        outputs = net(inputs, training=False)
-        loss = criterion(outputs, targets)
+    with torch.no_grad():
+        te_loss, correct, total = 0, 0, 0
+        for batch_idx, (inputs, targets) in enumerate(testloader):
+            if use_cuda:
+                inputs, targets = inputs.cuda(), targets.cuda()
+            inputs, targets = Variable(inputs), Variable(targets)
+            outputs = net(inputs, training=False)
+            loss = criterion(outputs, targets)
 
-        te_loss += loss.data[0]
-        _, predicted = torch.max(outputs.data, 1)
-        total += targets.size(0)
-        correct += predicted.eq(targets.data).cpu().sum()
+            te_loss += loss.data.item()
+            _, predicted = torch.max(outputs.data, 1)
+            total += targets.size(0)
+            correct += predicted.eq(targets.data).sum().cpu()
 
-        progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-            % (te_loss/(batch_idx+1), 100.*correct/total, correct, total))
+            progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+                % (te_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
     weights_values = 0
     for param in net.parameters():
@@ -213,7 +214,7 @@ all_weights = []
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9)
 
-tr_loss = []; tr_acc = []; te_loss = []; te_acc = [];  
+tr_loss_list = []; tr_acc_list = []; te_loss_list = []; te_acc_list = [];  
 for epoch in range(start_epoch, start_epoch+args.epoch):
     if epoch in schedule:
         Schedule()
@@ -221,9 +222,9 @@ for epoch in range(start_epoch, start_epoch+args.epoch):
     tr_loss, train_acc = train(epoch)
     te_loss , test_acc  = test(epoch)
 
-    tr_loss.append(tr_loss); tr_acc.append(train_acc); te_loss.append(te_loss); te_acc.append(test_acc)
+    tr_loss_list.append(tr_loss); tr_acc_list.append(train_acc); te_loss_list.append(te_loss); te_acc_list.append(test_acc)
 
-pickle.dump((tr_loss, tr_acc, te_loss, te_acc, all_weights, description), gzip.open('./checkpoint/'+namemodel+'.p.gz', 'wb'))
+pickle.dump((tr_loss_list, tr_acc_list, te_loss_list, te_acc_list, all_weights, description), gzip.open('./checkpoint/'+namemodel+'.p.gz', 'wb'))
 
 # tr_loss, tr_acc, te_loss, te_acc, description = pickle.load(gzip.open('./checkpoint/VGG19_GAP_BN_drop_100.p.gz', 'rb'))
 
