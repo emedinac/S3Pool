@@ -12,7 +12,8 @@ I developed this code during my master studies (approximately January/March 2017
 ### Rev 2.0
 
  This code works now on Pytorch 1.0.1. But organization should be improved.
-Usage line is included.
+ 
+ Usage line is included.
 
 
 ### Rev 1.0
